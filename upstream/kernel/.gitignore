@@ -1,1 +1,3 @@
-mainline
+mainline/*
+rk35xx/*
+rk3588/*

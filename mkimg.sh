@@ -104,7 +104,7 @@ modules_mb=150
 
 if [ "$rootfs_fstype" == "btrfs" ];then
 	# the btrfs compress rate (estimated value)
-	compress_rate=0.618
+	compress_rate=0.8
 	target_img_mb=$(echo -e "(($rootfs_source_mb + $modules_mb) * $compress_rate + $bootloader_mb + $bootfs_mb) / 1\nquit\n" | ${BC} -q)
 else
 	# reserved size for xfs or ext4

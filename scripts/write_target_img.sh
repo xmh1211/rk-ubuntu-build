@@ -49,8 +49,8 @@ echo "The loop device is ${loopdev}"
 bootloader_mb=16
 
 case ${rootfs_fstype} in
-	btrfs) echo "mount -o compress=zstd:6 -t btrfs ${loopdev}p2 ${rootpath}"
-	       mount -o compress=zstd:6 -t btrfs ${loopdev}p2 ${rootpath} || (losetup -D; exit 1)
+	btrfs) echo "mount -o compress=zstd:3 -t btrfs ${loopdev}p2 ${rootpath}"
+	       mount -o compress=zstd:3 -t btrfs ${loopdev}p2 ${rootpath} || (losetup -D; exit 1)
 	       ;;
 	 ext4) echo "mount -t ext4 ${loopdev}p2 ${rootpath}"
 	       mount -t ext4 ${loopdev}p2 ${rootpath} || (losetup -D; exit 1)
@@ -149,7 +149,7 @@ fi
 	cd etc
 	case $rootfs_fstype in
 		btrfs) cat > fstab <<EOF
-UUID=${rootuuid}  /                      btrfs  defaults,compress=zstd:6        0  0
+UUID=${rootuuid}  /                      btrfs  defaults,compress=zstd:3        0  0
 UUID=${bootuuid}  /boot                  ext4   defaults                        0  0
 EOF
 		       ;;

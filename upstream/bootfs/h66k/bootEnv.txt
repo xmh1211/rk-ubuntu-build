@@ -3,7 +3,7 @@ bootlogo=true
 fdtfile=rockchip/rk3568-hlink-h66k.dtb
 rootdev=/dev/mmcblk0p2
 rootfstype=btrfs 
-rootflags=compress=zstd:6
+rootflags=compress=zstd:3
 console=serial
 consoleargs=console=ttyFIQ0 console=ttyS2 console=tty1
 usbstoragequirks=0x2537:0x1066:u,0x2537:0x1068:u
