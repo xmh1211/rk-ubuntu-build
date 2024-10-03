@@ -59,13 +59,52 @@ else
 	output_dir=build/${dist}
 fi
 
-function unbind() {
+function bind() {
 	cd ${WORKDIR}
-	umount -f ${output_dir}/dev/pts
-	umount -f ${output_dir}/dev
-	umount -f ${output_dir}/proc
-	umount -f ${output_dir}/sys
-	umount -f ${output_dir}/run
+	mount -o bind /dev ${output_dir}/dev
+	mount -o bind /proc ${output_dir}/proc
+	mount -o bind /run ${output_dir}/run
+	mount -o bind /sys ${output_dir}/sys
+	which lsmount && lsmount && sleep 5
+}
+
+function unbind() {
+	local i
+	cd ${WORKDIR}
+	i=0
+	while [ $i -le 5 ];do
+		umount -f ${output_dir}/dev/pts 2>/dev/null || break
+		sleep 1
+		i=$((i++))
+	done
+
+	i=0
+	while [ $i -le 5 ];do
+		umount -f ${output_dir}/dev 2>/dev/null || break
+		sleep 1
+		i=$((i++))
+	done
+
+	i=0
+	while [ $i -le 5 ];do
+		umount -f ${output_dir}/proc 2>/dev/null || break
+		sleep 1
+		i=$((i++))
+	done
+
+	i=0
+	while [ $i -le 5 ];do
+		umount -f ${output_dir}/sys 2>/dev/null || break
+		sleep 1
+		i=$((i++))
+	done
+
+	i=0
+	while [ $i -le 5 ];do
+		umount -f ${output_dir}/run 2>/dev/null || break
+		sleep 1
+		i=$((i++))
+	done
 }
 
 function on_trap() {
@@ -88,6 +127,7 @@ mkdir -p ${output_dir}/dev
 mkdir -p ${output_dir}/proc
 mkdir -p ${output_dir}/run
 mkdir -p ${output_dir}/sys
+bind
 
 if [ $CROSS_FLAG -eq 1 ];then
 	debootstrap --arch=arm64 --foreign ${os_release} ${output_dir} "$DEBOOTSTRAP_MIRROR" 
@@ -95,12 +135,6 @@ if [ $CROSS_FLAG -eq 1 ];then
 else
 	debootstrap --arch=arm64 ${os_release} ${output_dir} "$DEBOOTSTRAP_MIRROR" 
 fi
-
-mount -o bind /dev ${output_dir}/dev
-mount -o bind /dev/pts ${output_dir}/dev/pts
-mount -o bind /sys ${output_dir}/sys
-mount -o bind /proc ${output_dir}/proc
-mount -o bind /run ${output_dir}/run
 
 # second stage
 echo "Stage 2 ..."
@@ -134,7 +168,13 @@ if [ "${CHROOT_INSTALL_LOCAL_DEBS}" == "yes" ];then
 	fi
 fi
 
-cp -v "${CHROOT}" "${output_dir}/tmp/chroot.sh"
+if [ -f "${CHROOT}" ];then
+    cp -v "${CHROOT}" "${output_dir}/tmp/chroot.sh"
+else
+    echo "${CHROOT} not exists!"
+    unbind
+    exit 1
+fi
 
 if [ $CROSS_FLAG -eq 1 ];then
 	chroot ${output_dir} /usr/bin/qemu-aarch64-static /bin/bash /tmp/chroot.sh
@@ -143,16 +183,10 @@ else
 fi
 
 echo "umount ... "
-umount ${output_dir}/dev/pts
-umount ${output_dir}/dev
-umount ${output_dir}/proc
-umount ${output_dir}/sys
-umount ${output_dir}/run
+unbind
 echo 'done'
 echo
 
-if [ $CROSS_FLAG -eq 1 ];then
-	rm ${output_dir}/usr/bin/qemu-aarch64-static
-fi
-cp -v ${SOURCES_LIST_ORIG} ${output_dir}/etc/apt/sources.list
+[ $CROSS_FLAG -eq 1 ] && rm ${output_dir}/usr/bin/qemu-aarch64-static
+[ -f ${SOURCES_LIST_ORIG} ] && cp -v ${SOURCES_LIST_ORIG} ${output_dir}/etc/apt/sources.list
 exit 0
