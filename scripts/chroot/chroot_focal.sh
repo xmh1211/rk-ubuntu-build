@@ -69,8 +69,12 @@ if [ "${HAS_GRAPHICAL_DESKTOP}" == "yes" ];then
 fi
 
 echo "Change some config files ... "
+
 # setup default hostname
-echo "ubuntu" > /etc/hostname
+source /etc/os-release
+hostname=${ID:-linux}
+echo "${ID}" > /etc/hostname
+
 if [ -f "/etc/NetworkManager/NetworkManager.conf" ];then
 	sed -e 's/managed=false/managed=true/' -i /etc/NetworkManager/NetworkManager.conf || echo "Change NetworkManager.conf failed!"
 fi
