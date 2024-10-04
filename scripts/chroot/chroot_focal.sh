@@ -74,11 +74,33 @@ echo "Change some config files ... "
 source /etc/os-release
 hostname=${ID:-linux}
 echo "${ID}" > /etc/hostname
+if [ "$ID" == "debian" ];then
+	cat >> /etc/bash.bashrc <<EOF
+
+# You may uncomment the following lines if you want 'ls' to be colorized:
+export LS_OPTIONS='--color=auto'
+eval "\$(dircolors)"
+alias ls='ls \$LS_OPTIONS'
+alias ll='ls \$LS_OPTIONS -l'
+alias l='ls \$LS_OPTIONS -lA'
+#
+# Some more alias to avoid making mistakes:
+# alias rm='rm -i'
+# alias cp='cp -i'
+# alias mv='mv -i'
+EOF
+fi
 
 if [ -f "/etc/NetworkManager/NetworkManager.conf" ];then
 	sed -e 's/managed=false/managed=true/' -i /etc/NetworkManager/NetworkManager.conf || echo "Change NetworkManager.conf failed!"
 fi
 echo 'done'
+echo
+
+root_password=${CHROOT_DEFAULT_ROOT_PASSWORD:-1234}
+echo -ne "Setup the default password \033[1m${root_password}\033[0m for user root ... "
+echo "root:${root_password}" | chpasswd
+echo "done"
 echo
 
 echo 'Clean ... '

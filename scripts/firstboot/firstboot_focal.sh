@@ -286,23 +286,33 @@ function config_network() {
 
 	local ifnames=$(get_ifnames)
 	if [ "$ifnames" != "" ];then
-		[ -z "${NETPLAN_BACKEND}" ] && NETPLAN_BACKEND="NetworkManager"
-		create_netplan_config ${NETPLAN_BACKEND} $ifnames
+		[ -z "${NETPLAN_BACKEND}" ] && NETPLAN_BACKEND="ifupdown"
 		case ${NETPLAN_BACKEND} in
-			NetworkManager)	stop_service NetworkManager.service
+			NetworkManager)	# netplan with NetworkManager
+					create_netplan_config ${NETPLAN_BACKEND} $ifnames
+					stop_service NetworkManager.service
 					stop_service systemd-networkd.service
 					disable_service systemd-networkd.service
 					enable_service NetworkManager.service
 					start_service NetworkManager.service
+					netplan apply
 					;;
-			networkd)	stop_service NetworkManager.service
+			networkd)	# netplan with networkd
+					create_netplan_config ${NETPLAN_BACKEND} $ifnames
+					stop_service NetworkManager.service
 					stop_service systemd-networkd.service
 					disable_service NetworkManager.service
 					enable_service systemd-networkd.service
 					start_service systemd-networkd.service
+					netplan apply
+					;;
+			ifupdown*)	# ifupdown or ifupdown2
+					stop_service systemd-networkd.service
+					disable_service systemd-networkd.service
+					enable_service networking.service
+					start_service networking.service
 					;;
 		esac
-		netplan apply
 	fi
 	sync
 }

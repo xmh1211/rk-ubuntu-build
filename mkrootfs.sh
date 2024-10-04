@@ -65,7 +65,7 @@ function bind() {
 	mount -o bind /proc ${output_dir}/proc
 	mount -o bind /run ${output_dir}/run
 	mount -o bind /sys ${output_dir}/sys
-	which lsmount && lsmount && sleep 5
+	which lsmount && lsmount | grep "${output_dir}" && echo -e "\033[0m" && sleep 5
 }
 
 function unbind() {
@@ -149,6 +149,7 @@ cp ${SOURCES_LIST_WORK} ${output_dir}/etc/apt/sources.list
 
 env_file="${output_dir}/tmp/chroot.env"
 cat > ${env_file} <<EOF
+CHROOT_DEFAULT_ROOT_PASSWORD="${CHROOT_DEFAULT_ROOT_PASSWORD}"
 ENABLE_EXT_REPO="${CHROOT_ENABLE_EXT_REPO}"
 EXT_REPOS="${CHROOT_EXT_REPOS}"
 NECESSARY_PKGS="${CHROOT_NECESSARY_PKGS}"
