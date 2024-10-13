@@ -544,4 +544,9 @@ if [ -f /usr/lib/systemd/system/ssd1306.service ];then
 	start_service ssd1306.service
 fi
 
+if [ -f /usr/lib/systemd/system/chrony.service ];then
+	enable_service chrony.service
+	start_service chrony.service
+fi
+
 disable_service $FIRSTBOOT
