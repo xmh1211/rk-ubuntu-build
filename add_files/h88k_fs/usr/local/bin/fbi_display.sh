@@ -40,7 +40,7 @@ function display_img() {
 		fbi -d $fbdev -T $tty $zoom $img >/dev/null 2>&1 &
 		sleep $delay
 		pid=$(ps -ef | grep "fbi \-d" | grep -v grep | awk '{print $2}')
-		[ "$pid" != "" ] && kill -9 $pid 2>/dev/null
+		[ "$pid" != "" ] && kill $pid 2>/dev/null
 		if [ "$rm_img" == "1" ];then
 			rm $img
 		fi
