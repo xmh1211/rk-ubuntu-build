@@ -274,6 +274,7 @@ function create_netplan_config() {
 			let if_idx++
 		done
 	fi #networkd
+	chmod 600 $yml
 	echo 'done'
 	echo
 }
