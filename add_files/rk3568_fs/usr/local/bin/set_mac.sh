@@ -1,5 +1,5 @@
 #!/bin/bash
-# version: 5.0
+# version: 5.1
 
 # 检查参数数量
 if [[ "$#" -ne 1 ]]; then
@@ -121,7 +121,7 @@ mac_offset() {
     local mac_address="$1"
     local offset="$2"
 
-    if [[ ! $mac_address =~ ^([0-9a-f]{2}(:|-)){5}([0-9a-f]{2})$ ]]; then
+    if [[ ! $mac_address =~ ^([0-9a-fA-F]{2}(:|-)){5}([0-9a-fA-F]{2})$ ]]; then
         echo "Invalid MAC address format." >&2
         return 1
     fi
@@ -143,22 +143,22 @@ mac_offset() {
 }
 
 # 检查配置文件，获取当前 MAC 地址
-current_mac_address=""
+configured_mac_address=""
 if [[ -f "$mac_address_config" ]]; then
-    current_mac_address=$(grep "^$interface " "$mac_address_config" | awk '{print $2}')
+    configured_mac_address=$(grep "^$interface " "$mac_address_config" | awk '{print $2}')
 
     # 检查 MAC 地址的合法性
-    if [[ ! "$current_mac_address" =~ ^([0-9a-f]{2}(:|[-])?){5}[0-9a-f]{2}$ ]]; then
+    if [[ ! "$configured_mac_address" =~ ^([0-9a-fA-F]{2}(:|[-])?){5}[0-9a-fA-F]{2}$ ]]; then
         echo "Invalid MAC address found in config for $interface. Removing it."
         sed -i "/^$interface /d" "$mac_address_config"  # 从配置文件中删除这一行
-        current_mac_address=""
+        configured_mac_address=""
     fi
 fi
 
 # 生成完整的 MAC 地址如果配置文件中不存在当前 MAC 地址
-if [[ -n "$current_mac_address" ]]; then
+if [[ -n "$configured_mac_address" ]]; then
     echo "Found MAC Address for $interface in config: $current_mac_address"
-    final_mac_address="$current_mac_address"
+    final_mac_address=${configured_mac_address,,}
 else
     # 生成完整的 MAC 地址
     final_mac_address=$(generate_mac)
