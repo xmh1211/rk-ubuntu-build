@@ -7,4 +7,3 @@ elif [ -x /usr/bin/linux_logo ];then
 elif [ -x /usr/bin/screenfetch ];then
     LC_ALL=C /usr/bin/screenfetch
 fi
-    LC_ALL=C /usr/bin/screenfetch
