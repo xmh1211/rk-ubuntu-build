@@ -311,6 +311,7 @@ function config_network() {
 					stop_service systemd-networkd.service
 					disable_service systemd-networkd.service
 					enable_service networking.service
+					stop_service networking.service
 					start_service networking.service
 					;;
 		esac
