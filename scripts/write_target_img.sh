@@ -238,7 +238,6 @@ EOF
 	cp -v ${firstboot} usr/local/bin/firstboot.sh && chmod 755 usr/local/bin/firstboot.sh
 	cp -v ${WORKDIR}/scripts/mystartup.sh usr/local/bin/mystartup.sh && chmod 755 usr/local/bin/mystartup.sh
   	ln -sf /usr/local/lib/systemd/system/firstboot.service ./etc/systemd/system/multi-user.target.wants/firstboot.service
-  	ln -sf /usr/local/lib/systemd/system/mystartup.service ./etc/systemd/system/multi-user.target.wants/mystartup.service
 	echo "done"
 )
 

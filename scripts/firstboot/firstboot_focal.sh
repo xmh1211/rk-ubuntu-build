@@ -551,4 +551,9 @@ if [ -f /usr/lib/systemd/system/chrony.service ];then
 	start_service chrony.service
 fi
 
+if [ -f /usr/local/lib/systemd/system/mystartup.service ];then
+	enable_service mystartup.service
+	start_service mystartup.service
+fi
+
 disable_service $FIRSTBOOT
