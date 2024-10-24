@@ -12,14 +12,15 @@
 
 [Unit]
 Description=Runs /usr/local/bin/mystartup.sh
-Wants=network-online.target remote-fs.target
-After=network-online.target local-fs.target remote-fs.target
+Wants=network.target remote-fs.target
+After=network.target local-fs.target remote-fs.target
 
 [Service]
 Type=oneshot
+User=root
+Group=root
 ExecStart=-/usr/local/bin/mystartup.sh
 TimeoutSec=0
-StandardInput=tty
 RemainAfterExit=yes
 
 [Install]
