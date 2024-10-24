@@ -77,6 +77,13 @@ function resize_filesystem() {
 	echo 
 }
 
+function daemon_reload() {
+	echo "systemctl daemon-reload ... "
+	systemctl daemon-reload
+	echo "done"
+	echo
+}
+
 function enable_service() {
 	echo "disable service $1 ... "
 	systemctl enable $1
@@ -94,6 +101,20 @@ function start_service() {
 function stop_service() {
 	echo "stop service $1 ... "
 	systemctl stop $1
+	echo "done"
+	echo
+}
+
+function status_service() {
+	echo "status of service $1 ... "
+	systemctl status $1
+	echo "done"
+	echo
+}
+
+function restart_service() {
+	echo "restart service $1 ... "
+	systemctl restart $1
 	echo "done"
 	echo
 }
@@ -552,8 +573,15 @@ if [ -f /usr/lib/systemd/system/chrony.service ];then
 fi
 
 if [ -f /usr/local/lib/systemd/system/mystartup.service ];then
+	systemd daemon-reload
 	enable_service mystartup.service
 	start_service mystartup.service
+	sleep 1
+	ret=$(systemctl status mystartup.service)
+	if [ $ret -ne 0 ];then
+	    stop_service mystartup.service
+	    start_service mystartup.service
+	fi
 fi
 
 disable_service $FIRSTBOOT
