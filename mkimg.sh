@@ -45,7 +45,7 @@ fi
 # The custom env file
 # The variable values in it can override the variable values of the same name in the previous three files
 if [ -f "./env/custom/${custom}.env" ];then
-	source ./env/linux/${custom}.env
+	source ./env/custom/${custom}.env
 fi
 # end of check parameters
 
