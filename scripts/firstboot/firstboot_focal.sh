@@ -571,8 +571,8 @@ if [ -f /usr/local/lib/systemd/system/mystartup.service ];then
 	enable_service mystartup.service
 	start_service mystartup.service
 	sleep 1
-	ret=$(systemctl status mystartup.service)
-	if [ $ret -ne 0 ];then
+	systemctl status mystartup.service
+	if [ $? -ne 0 ];then
 	    stop_service mystartup.service
 	    start_service mystartup.service
 	fi
