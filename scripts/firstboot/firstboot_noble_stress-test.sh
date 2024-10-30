@@ -561,7 +561,7 @@ STRESS_DURATION=3600 # 压力测试持续时间（秒）
 # 记录时间戳和资源信息
 log_resources() {
     echo "时间: \$(date)" >> \$LOG_FILE
-    echo "CPU 温度: \$(sensors | grep 'Package id 0' | awk '{print \$4}')" >> \$LOG_FILE
+    echo "CPU 温度: \$(sensors)" >> \$LOG_FILE
     echo "内存使用: \$(free -h | grep 'Mem:' | awk '{print \$3 "/" \$2}')" >> \$LOG_FILE
     echo "硬盘使用: \$(df -h / | awk 'NR==2 {print \$5}')" >> \$LOG_FILE
     echo "网络活动: \$(ifstat -S 1 1 | awk 'END {print "In: "\$1" KB, Out: "\$2" KB"}')" >> \$LOG_FILE
