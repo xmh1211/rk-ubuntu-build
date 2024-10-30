@@ -135,7 +135,6 @@ function setup_hostname() {
 		fi
 		rm -f $conf
 	fi
-	sync
 }
 
 function reset_machine_id() {
@@ -151,7 +150,6 @@ function reset_machine_id() {
 		fi
 		rm -f $conf
 	fi
-	sync
 }
 
 function get_ifnames() {
@@ -337,7 +335,6 @@ function config_network() {
 					;;
 		esac
 	fi
-	sync
 }
 
 function disable_suspend() {
@@ -463,7 +460,6 @@ function config_openssh_server() {
 	fi
 	enable_service "ssh.service"
 	start_service "ssh.service"
-	sync
 }
 
 function config_i18n() {
@@ -489,7 +485,6 @@ function config_i18n() {
 
 		rm -f $conf
 	fi
-	sync
 }
 
 function restart_getty() {
@@ -539,7 +534,6 @@ function modify_user_pswd() {
 		rm -f ${file}
 		restart_getty
 	fi
-	sync
 }
 
 fix_partition
@@ -585,3 +579,7 @@ if [ -f /usr/local/lib/systemd/system/mystartup.service ];then
 fi
 
 disable_service $FIRSTBOOT
+
+echo "sync ..."
+sync && echo "sync done"
+exit 0
