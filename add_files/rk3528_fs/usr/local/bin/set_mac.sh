@@ -1,5 +1,5 @@
 #!/bin/bash
-# version: 5.2
+# version: 5.3
 
 # 检查参数数量
 if [[ "$#" -ne 1 ]]; then
@@ -37,7 +37,6 @@ mac_prefixes="00:0e:8e
 00:4f:49
 00:60:52
 00:e0:4c
-17:5b:22
 52:54:ab
 d4:3d:7f
 f0:25:b7
