@@ -100,15 +100,16 @@ rootfs_source_mb=$(du -m -d1 "${WORKDIR}/build/${rootfs_source}" | tail -n1 | aw
 echo "The rootfs source size is ${rootfs_source_mb} MB"
 
 # modules size (estimated value)
-modules_mb=150
+modules_mb=200
 
 if [ "$rootfs_fstype" == "btrfs" ];then
 	# the btrfs compress rate (estimated value)
 	compress_rate=0.8
-	target_img_mb=$(echo -e "(($rootfs_source_mb + $modules_mb) * $compress_rate + $bootloader_mb + $bootfs_mb) / 1\nquit\n" | ${BC} -q)
+	reserved_mb=640
+	target_img_mb=$(echo -e "(($rootfs_source_mb + $modules_mb) * $compress_rate + $bootloader_mb + $bootfs_mb + $reserved_mb) / 1\nquit\n" | ${BC} -q)
 else
 	# reserved size for xfs or ext4
-	reserved_mb=320
+	reserved_mb=640
 	target_img_mb=$(( $rootfs_source_mb + $modules_mb + $bootloader_mb + $bootfs_mb + $reserved_mb))
 fi
 echo "The target image size is ${target_img_mb} MB"
