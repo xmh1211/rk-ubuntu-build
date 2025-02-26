@@ -539,6 +539,49 @@ function modify_user_pswd() {
 	fi
 }
 
+function tunning_log_settings() {
+	sed -e 's/^kern\.\*/#kern\.\*/' -i /etc/rsyslog.d/50-default.conf
+	sed -e 's/#compress/compress/' -i /etc/logrotate.conf
+	echo "maxsize 10M" >> /etc/logrotate.conf
+
+	cat > /etc/logrotate.d/rsyslog <<EOF
+/var/log/syslog
+/var/log/mail.log
+/var/log/auth.log
+/var/log/user.log
+/var/log/cron.log
+{
+        rotate 4
+        maxsize 10M
+        weekly
+        missingok
+        notifempty
+        compress
+        delaycompress
+        sharedscripts
+        postrotate
+                /usr/lib/rsyslog/rsyslog-rotate
+        endscript
+}
+EOF
+
+	logrotate -vf /etc/logrotate.conf
+	stop_service rsyslog.service
+	start_service rsyslog.service
+	rm -f /var/log/kern.*
+
+	cat >> /etc/systemd/journald.conf <<EOF
+SystemMaxUse=20M
+RuntimeMaxUse=15M
+MaxRetentionSec=1week
+EOF
+
+	stop_service systemd-journald.service
+	start_service systemd-journald.service
+}
+
+modify_user_pswd
+
 fix_partition
 check_partition_count
 resize_partition
@@ -551,10 +594,9 @@ config_openssh_server
 config_i18n
 disable_suspend
 
+tunning_log_settings
 clean_logs
 clean_debootstrap_dir
-
-modify_user_pswd
 
 set_lightdm_default_xsession "xfce"
 enable_rknpu
