@@ -2,6 +2,63 @@
 
 [中文文档](readme_CN.md) | [English Version](README.md)
 
+## 🖥️ System Requirements
+
+### Host Environment
+| Category          | Requirement                                                                 |
+|-------------------|-----------------------------------------------------------------------------|
+| Architecture      | **x86_64** or **arm64(recommend)**                                                     |
+| OS                | Ubuntu 20.04+/Debian 11+ or Armbian (for arm64 hosts)                       |
+| Storage           | Minimum 16GB free space (50GB recommended for desktop builds)               |
+
+### Essential Tools
+Install core dependencies with:
+```bash
+sudo apt update && sudo apt install -y \
+    debootstrap \
+    binfmt-support \
+    parted \
+    dosfstools \
+    btrfs-progs \
+    xfsprogs \
+    f2fs-tools \
+    curl
+```
+
+### Filesystem Tools
+Required packages for image creation:
+```bash
+sudo apt install -y \
+    e2fsprogs \    # For ext4 support
+    xfsprogs \     # For XFS support
+    btrfs-progs \  # For Btrfs support
+    f2fs-tools     # For F2FS support
+```
+
+### Cross-Architecture Support (x86 Only)
+Enable ARM64 emulation:
+```bash
+sudo apt install -y qemu-user-static
+sudo update-binfmts --enable qemu-aarch64
+```
+
+### Kernel Handling
+For custom kernel integration:
+```bash
+sudo apt install -y \
+    u-boot-tools \
+    device-tree-compiler \
+    kmod
+```
+
+### Verification Tools (Optional)
+```bash
+sudo apt install -y \
+    tree \         # Directory visualization
+    pv \           # Progress monitoring
+    md5sum         # Checksum validation
+```
+
 ![structure](https://img.shields.io/badge/Project_Structure-Organized-009688?logo=files&style=flat)
 
 ## 📂 File Structure
