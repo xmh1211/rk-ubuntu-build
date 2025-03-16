@@ -1,2 +1,3 @@
-rk35xx/*
-rk3588/*
+mainline/*.gz
+rk35xx/*.gz
+rk3588/*.gz
