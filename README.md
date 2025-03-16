@@ -113,4 +113,3 @@ export DIST_ALIAS="focal"
 ```
 
 [切换到中文版](readme_CN.md)
-```
