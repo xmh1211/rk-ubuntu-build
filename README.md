@@ -1,39 +1,54 @@
-Build ubuntu image for rockchip rk35xx machines
+```markdown
+# Ubuntu Image Builder for Rockchip RK35xx
 
-Instructions:
+[中文文档](readme_CN.md) | [English Version](README.md)
 
-1. Create rootfs
-  
-      For example:
+![rk35xx](https://img.shields.io/badge/Platform-Rockchip_RK35xx-009688?logo=linux&style=flat)
+![ubuntu](https://img.shields.io/badge/Ubuntu-20.04%7C22.04-dd4814?logo=ubuntu)
 
-      sudo ./mkrootfs.sh focal
+## 🛠️ Build Instructions
 
-      sudo ./mkrootfs.sh jammy-xfce
-  
-      You can run it multiple times. If you think there is a problem with the created rootfs, you can clear it:
-  
-      sudo ./mkrootfs.sh focal clean
+### 1. Create Root File System
+```bash
+# For minimal server images
+sudo ./mkrootfs.sh focal
 
-      sudo ./mkrootfs.sh jammy-xfce clean
+# For XFCE desktop images
+sudo ./mkrootfs.sh jammy-xfce
+```
 
-2. Create target image
+**Clean existing rootfs**:
+```bash
+sudo ./mkrootfs.sh focal clean
+sudo ./mkrootfs.sh jammy-xfce clean
+```
 
-      For example:
-  
-      sudo ./mkimg.sh rk3568 h68k focal
+### 2. Generate Target Image
+```bash
+# Syntax: ./mkimg.sh <soc> <board> <variant>
+sudo ./mkimg.sh rk3568 h68k focal
+sudo ./mkimg.sh rk3568 h69k-max jammy-xfce
+```
 
-      sudo ./mkimg.sh rk3568 h69k-max jammy-xfce
+### 3. Output Files
+```
+build/
+├── h68k_ubuntu_focal_vYYYYMMDD.img
+└── h69k-max_ubuntu_jammy-xfce_vYYYYMMDD.img
+```
+*Replace YYYYMMDD with actual build date*
 
-3. Get the target image:
-  
-      build/h68k_ubuntu_focal_vYYYYMMDD.img
+## 🖥️ System Requirements
+| Component       | Requirement                                  |
+|-----------------|---------------------------------------------|
+| Host OS         | x86_64: Ubuntu 20.04+/Debian 11+<br>arm64: Armbian/Ubuntu/Debian |
+| Storage         | ≥8GB free space (SSD recommended)           |
+| Dependencies    | `debootstrap` (latest version from [Ubuntu repo](https://git.launchpad.net/ubuntu/+source/debootstrap)) |
 
-      build/h69k-max_ubuntu_jammy-xfce_vYYYYMMDD.img
+## ❗ Important Notes
+1. Always verify image checksum before flashing
+2. Desktop variants require at least 16GB storage
+3. RK3568 and RK3588 have different U-Boot configurations
 
-4. System Requirements：
-
-      x86_64 host: debian or ubuntu
-      
-      arm64 host: debian or ubuntu or armbian
-      
-      Storage space: >= 8GB
+[切换到中文版](readme_CN.md)
+```
