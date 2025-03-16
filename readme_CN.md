@@ -2,6 +2,38 @@
 
 [English Documentation](README.md) | [中文文档](readme_CN.md)
 
+```bash
+sudo apt install -y \
+    e2fsprogs \    # ext4支持
+    xfsprogs \     # XFS支持
+    btrfs-progs \  # Btrfs支持
+    f2fs-tools     # F2FS支持
+```
+
+### 跨架构支持 (仅x86)
+启用ARM64模拟：
+```bash
+sudo apt install -y qemu-user-static
+sudo update-binfmts --enable qemu-aarch64
+```
+
+### 内核处理
+自定义内核集成工具：
+```bash
+sudo apt install -y \
+    u-boot-tools \
+    device-tree-compiler \
+    kmod
+```
+
+### 验证工具 (可选)
+```bash
+sudo apt install -y \
+    tree \         # 目录可视化
+    pv \           # 进度监控
+    md5sum         # 校验和验证
+```
+
 ![结构](https://img.shields.io/badge/项目结构-层级清晰-009688?logo=files&style=flat)
 
 ## 📂 文件结构
