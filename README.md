@@ -15,14 +15,40 @@
 Install core dependencies with:
 ```bash
 sudo apt update && sudo apt install -y \
-    debootstrap \
+    losetup \
     binfmt-support \
+    fdisk \
     parted \
     dosfstools \
-    btrfs-progs \
-    xfsprogs \
-    f2fs-tools \
+    wget \
     curl
+```
+### debootstrap Installation
+We recommend building from source for latest features:
+
+```bash
+# Install build dependencies
+sudo apt install -y git make
+
+# Clone repository
+git clone https://git.launchpad.net/ubuntu/+source/debootstrap
+cd debootstrap
+
+# Checkout latest stable version
+git checkout 1.0.128+nmu1ubuntu4  # Replace with latest tag
+
+# Build and install
+make
+sudo cp debootstrap /usr/sbin/
+sudo chmod 755 /usr/sbin/debootstrap
+
+# Verify installation
+debootstrap --version
+```
+
+ℹ️ **Package Manager Alternative** (Not recommended for new distros):
+```bash
+sudo apt install debootstrap
 ```
 
 ### Filesystem Tools
