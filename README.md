@@ -1,6 +1,6 @@
 # Ubuntu Image Builder for Rockchip RK35xx
 
-[中文文档](readme_CN.md) | [English Version](README.md)
+[中文文档](README_CN.md) | [English Version](README.md)
 
 ## 🖥️ System Requirements
 
@@ -34,13 +34,8 @@ sudo apt install -y git make
 git clone https://git.launchpad.net/ubuntu/+source/debootstrap
 cd debootstrap
 
-# Checkout latest stable version
-git checkout 1.0.128+nmu1ubuntu4  # Replace with latest tag
-
 # Build and install
-make
-sudo cp debootstrap /usr/sbin/
-sudo chmod 755 /usr/sbin/debootstrap
+sudo make install
 
 # Verify installation
 debootstrap --version
@@ -195,4 +190,4 @@ export OS_RELEASE="focal"
 export DIST_ALIAS="focal"
 ```
 
-[切换到中文版](readme_CN.md)
+[切换到中文版](README_CN.md)

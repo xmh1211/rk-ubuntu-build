@@ -1,6 +1,6 @@
 # Rockchip RK35xx 设备 Ubuntu 镜像构建工具
 
-[English Documentation](README.md) | [中文文档](readme_CN.md)
+[English Documentation](README.md) | [中文文档](README_CN.md)
 
 ## 🖥️ 系统要求
 
@@ -35,13 +35,8 @@ sudo apt install -y git make
 git clone https://git.launchpad.net/ubuntu/+source/debootstrap
 cd debootstrap
 
-# 检出最新稳定版本
-git checkout 1.0.128+nmu1ubuntu4  # 替换为最新标签
-
 # 编译安装
-make
-sudo cp debootstrap /usr/sbin/
-sudo chmod 755 /usr/sbin/debootstrap
+sudo make install
 
 # 验证安装
 debootstrap --version
