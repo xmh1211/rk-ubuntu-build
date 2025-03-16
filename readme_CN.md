@@ -1,4 +1,3 @@
-```markdown
 # Rockchip RK35xx 设备 Ubuntu 镜像构建工具
 
 [English Documentation](README.md) | [中文文档](readme_CN.md)
@@ -51,4 +50,3 @@ build/
 3. RK3568 和 RK3588 使用不同的 U-Boot 配置
 
 [Switch to English](README.md)
-```
