@@ -1,4 +1,3 @@
-```markdown
 # Ubuntu Image Builder for Rockchip RK35xx
 
 [中文文档](readme_CN.md) | [English Version](README.md)
@@ -51,4 +50,3 @@ build/
 3. RK3568 and RK3588 have different U-Boot configurations
 
 [切换到中文版](readme_CN.md)
-```
