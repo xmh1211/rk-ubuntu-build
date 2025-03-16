@@ -2,6 +2,58 @@
 
 [English Documentation](README.md) | [中文文档](readme_CN.md)
 
+## 🖥️ 系统要求
+
+### 宿主环境
+| 类别              | 要求                                                                         |
+|-------------------|-----------------------------------------------------------------------------|
+| 架构              | **x86_64** 或 **arm64(推荐)**                                                     |
+| 操作系统          | Ubuntu 20.04+/Debian 11+ 或 Armbian (arm64设备)                             |
+| 存储空间          | 最小16GB (桌面版建议50GB以上)                                               |
+
+### 核心工具
+安装基础依赖：
+```bash
+sudo apt update && sudo apt install -y \
+    losetup \
+    binfmt-support \
+    fdisk \
+    parted \
+    dosfstools \
+    wget \
+    curl
+```
+
+### debootstrap 安装
+建议从源码构建以支持最新发行版：
+
+```bash
+# 安装编译依赖
+sudo apt install -y git make
+
+# 克隆仓库
+git clone https://git.launchpad.net/ubuntu/+source/debootstrap
+cd debootstrap
+
+# 检出最新稳定版本
+git checkout 1.0.128+nmu1ubuntu4  # 替换为最新标签
+
+# 编译安装
+make
+sudo cp debootstrap /usr/sbin/
+sudo chmod 755 /usr/sbin/debootstrap
+
+# 验证安装
+debootstrap --version
+```
+
+ℹ️ **包管理器安装** (不推荐用于新发行版):
+```bash
+sudo apt install debootstrap
+```
+
+### 文件系统工具
+镜像创建所需软件包：
 ```bash
 sudo apt install -y \
     e2fsprogs \    # ext4支持
