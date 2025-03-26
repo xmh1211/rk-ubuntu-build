@@ -131,8 +131,9 @@ upstream/
 2. **上传文件** 到对应目录:
 ```bash
 # 示例：上传 RK35xx 内核
-cp boot-5.10.160*.tar.gz upstream/kernel/rk35xx/
-cp dtb-rockchip-5.10.160*.tar.gz upstream/kernel/rk35xx/
+cp boot-5.10.160-rk35xx*.tar.gz upstream/kernel/rk35xx/
+cp dtb-rockchip-5.10.160-rk35xx*.tar.gz upstream/kernel/rk35xx/
+cp modules-5.10.160-rk35xx*.tar.gz upstream/kernel/rk35xx/
 ```
 
 📦 **所需内核包清单**:
