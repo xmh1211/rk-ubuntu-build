@@ -130,8 +130,9 @@ upstream/
 2. **Upload Files** to corresponding directories:
 ```bash
 # Example: Upload RK35xx kernel
-cp boot-5.10.160*.tar.gz upstream/kernel/rk35xx/
-cp dtb-rockchip-5.10.160*.tar.gz upstream/kernel/rk35xx/
+cp boot-5.10.160-rk35xx*.tar.gz upstream/kernel/rk35xx/
+cp dtb-rockchip-5.10.160-rk35xx*.tar.gz upstream/kernel/rk35xx/
+cp modules-5.10.160-rk35xx*.tar.gz upstream/kernel/rk35xx/
 ```
 
 📦 **Required Packages per Kernel**:
