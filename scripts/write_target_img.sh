@@ -205,7 +205,7 @@ EOF
 	touch $conf
 	if [ -n "${NETPLAN_BACKEND}" ];then
 		echo "NETPLAN_BACKEND=${NETPLAN_BACKEND}" >> $conf
-		if [ "${NETPLAN_BACKEND}" == "networkd" ];then
+		#if [ "${NETPLAN_BACKEND}" == "networkd" ];then
 			echo "IF1_IPS=${IF1_IPS}" >> $conf
 			echo "IF1_ROUTES=${IF1_ROUTES}" >> $conf
 			echo "IF2_IPS=${IF2_IPS}" >> $conf
@@ -216,7 +216,7 @@ EOF
 			echo "IF4_ROUTES=${IF4_ROUTES}" >> $conf
 			echo "DNS=${DNS}" >> $conf
 			echo "SEARCH_DOMAIN=${SEARCH_DOMAIN}" >> $conf
-		fi
+		#fi
 	fi
 )
 

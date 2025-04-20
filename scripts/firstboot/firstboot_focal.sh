@@ -298,6 +298,68 @@ function create_netplan_config() {
 	echo
 }
 
+function create_ifupdown_config() {
+	local if_idx
+	local ips
+	local routes
+	local ifs_home="/etc/network/interfaces.d"
+
+	# ifupdown
+	if_idx=1
+	while [ "$1" != "" ];do
+		# get variables
+		case $if_idx in
+			1) ips=$IF1_IPS
+			   routes=$IF1_ROUTES
+			   ;;
+			2) ips=$IF2_IPS
+			   routes=$IF2_ROUTES
+			   ;;
+			3) ips=$IF3_IPS
+			   routes=$IF3_ROUTES
+			   ;;
+			4) ips=$IF4_IPS
+			   routes=$IF4_ROUTES
+			   ;;
+			*) ips=""
+			   routes=""
+			   ;;
+		esac # end get variables
+
+		# ip address
+		case $ips in
+			dhcp)	echo "auto $1" >> ${ifs_home}/$1
+				echo "iface $1 inet dhcp" >> ${ifs_home}/$1
+				;;
+			  '')	echo "iface $1 inet manual" >> ${ifs_home}/$1
+				;;
+			   *)	echo "auto $1" >> ${ifs_home}/$1
+				echo "iface $1 inet static" >> ${ifs_home}/$1
+				# address
+				echo "  address $ips" >> ${ifs_home}/$1
+
+				# gateway
+				if [ "$routes" != "" ];then
+					echo "  gateway $routes" >> ${ifs_home}/$1
+				fi # end routes
+
+				# dns
+				if [ "$DNS" != "" ];then
+					# DNS split by space
+					echo "  dns-nameservers $DNS" >> ${ifs_home}/$1
+				fi
+				;;
+		esac # end ip addr
+
+		# next ifname
+		shift
+		let if_idx++
+	done
+
+	echo 'done'
+	echo
+}
+
 function config_network() {
 	local conf="/etc/firstboot_network.conf"
 	if [ -f $conf ];then
@@ -327,6 +389,7 @@ function config_network() {
 					netplan apply
 					;;
 			ifupdown*)	# ifupdown or ifupdown2
+					create_ifupdown_config $ifnames
 					stop_service systemd-networkd.service
 					disable_service systemd-networkd.service
 					enable_service networking.service
