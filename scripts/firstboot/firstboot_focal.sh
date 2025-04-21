@@ -662,7 +662,7 @@ clean_logs
 clean_debootstrap_dir
 
 set_lightdm_default_xsession "xfce"
-enable_rknpu
+#enable_rknpu
 
 if [ -f /usr/lib/systemd/system/ssd1306.service ];then
 	enable_service ssd1306.service
