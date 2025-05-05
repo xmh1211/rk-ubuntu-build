@@ -130,9 +130,14 @@ function setup_hostname() {
 	local conf="/etc/firstboot_hostname"
 	if [ -f $conf ];then
 		hostname=$(cat $conf)
-		if [ "$hostname" != "" ];then
-			hostnamectl set-hostname $hostname
+		# add random id
+		random_id=$(openssl rand -base64 32 | tr -dc 'a-z0-9' | head -c 6)
+		if [ "$hostname" == "" ];then
+			hostname="host-${random_id}"
+		else
+			hostname="${hostname}-${random_id}"
 		fi
+		hostnamectl set-hostname $hostname
 		rm -f $conf
 	fi
 }
