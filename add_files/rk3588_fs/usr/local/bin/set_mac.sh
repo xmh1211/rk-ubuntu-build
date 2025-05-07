@@ -58,11 +58,7 @@ load_mac_prefixes() {
 
 # 获取唯一 ID
 get_unique_id() {
-    cpu_sn=$(grep 'Serial' /proc/cpuinfo 2>/dev/null | awk '{print $3}' 2>/dev/null)
-
-    if [[ -n "$cpu_sn" ]]; then
-        serial="$cpu_sn"
-    elif [[ -d /sys/block/mmcblk1 ]]; then
+    if [[ -d /sys/block/mmcblk1 ]]; then
         serial=$(< /sys/block/mmcblk1/device/cid 2>/dev/null)
     elif [[ -d /sys/block/mmcblk0 ]]; then
         serial=$(< /sys/block/mmcblk0/device/cid 2>/dev/null)
