@@ -148,9 +148,16 @@ function reset_machine_id() {
 		source $conf
 		if [ "$RESET_MACHINE_ID" == "yes" ];then
 			echo "resetting machine id ... "
-			rm -f /etc/machine-id
+			echo "the old machine-id is:"
+			cat /etc/machine-id
+			rm -f /etc/machine-id /var/lib/dbus/machine-id
 			rm -rf /var/log/journal/*
 			systemd-machine-id-setup
+			echo "the new machine-id is:"
+			cat /etc/machine-id
+			cp -avf /etc/machine-id /var/lib/dbus/machine-id
+			restart_service dbus
+			restart_service system-journald
 			echo "done"
 		fi
 		rm -f $conf
