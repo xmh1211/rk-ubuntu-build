@@ -1,5 +1,5 @@
 #!/bin/bash
-# version: 5.3
+# version: 6.3
 
 # 检查参数数量
 if [[ "$#" -ne 1 ]]; then
@@ -13,47 +13,41 @@ interface="$1"
 # 配置文件位置
 mac_prefix_config="/etc/mac_prefix.conf"
 mac_address_config="/etc/mac_addresses.conf"
+lock_file="/var/lock/set_mac.lock"
+log_file="/var/log/set_mac.log"
 
-# 获取所有以 e 开头的物理以太网接口，按 ASCII 顺序排序
-interfaces=($(for iface in /sys/class/net/*; do
-    if [[ -e "$iface/type" && $(cat "$iface/type") -eq 1 && $(basename "$iface") == e* ]]; then
-        basename "$iface"
-    fi
-done | sort))
+# 初始化日志
+exec >> "$log_file" 2>&1
+echo "=== $(date) 开始处理接口 $interface ==="
 
-# 验证输入的网口名称是否在 interfaces 数组中
-if [[ ! " ${interfaces[@]} " =~ " ${interface} " ]]; then
-    echo "Network interface $interface does not exist in the physical Ethernet interfaces." >&2
+# 定义错误处理函数
+die() {
+    echo "错误：$1" >&2
     exit 1
-fi
+}
 
-# 定义 MAC 前缀
-mac_prefixes="00:0e:8e
-00:14:22
-00:18:8c
-00:1b:77
-00:1d:92
-00:20:18
-00:4f:49
-00:60:52
-00:e0:4c
-52:54:ab
-d4:3d:7f
-f0:25:b7
-28:6a:8d
-b0:7b:d5
-d8:0d:26"
-
-# 读取 MAC 前缀
-load_mac_prefixes() {
-    if [[ -f "$mac_prefix_config" ]]; then
-        mapfile -t mac_groups < "$mac_prefix_config"
-    else
-        # 将 MAC 前缀写入到配置文件中
-        echo -e "$mac_prefixes" > "$mac_prefix_config"
-        chmod 600 "$mac_prefix_config"  # 设置文件权限
-        mapfile -t mac_groups < "$mac_prefix_config"
+# 增强型MAC地址验证函数
+validate_mac() {
+    local mac="$1"
+    if [[ ! "$mac" =~ ^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$ ]]; then
+        die "无效的MAC地址格式：$mac"
     fi
+}
+
+# 获取所有物理以太网接口
+get_physical_interfaces() {
+    local ifaces=()
+    for iface in /sys/class/net/*; do
+        iface_name=$(basename "$iface")
+        if [[ -e "$iface/device" && \
+            ! "$iface_name" =~ ^(lo|docker|virbr|vnet|wlan|wl|ww|tun|tap) ]]; then
+            if [[ $(cat "$iface/type" 2>/dev/null) -eq 1 || \
+                "$(cat "$iface/uevent" 2>/dev/null | grep DEVTYPE=ether)" ]]; then
+                ifaces+=("$iface_name")
+            fi
+        fi
+    done
+    echo "${ifaces[@]}" | tr ' ' '\n' | sort | tr '\n' ' '
 }
 
 # 获取唯一 ID
@@ -75,141 +69,149 @@ get_unique_id() {
     echo "$(echo -n "$serial" | sha256sum | cut -f1)"
 }
 
-# 生成 MAC 地址
-generate_mac() {
-    load_mac_prefixes
-    local mac_grp_count=${#mac_groups[@]}
-    local unique_id=$(get_unique_id)
-    local sum=0
-
-    for (( i=0; i<${#unique_id}; i++ )); do
-        hex_char="${unique_id:i:1}"
-        hex_value=$(printf '%d' "0x$hex_char" 2>/dev/null)
-        if [[ $? -eq 0 ]]; then
-            sum=$(( sum + hex_value ))
-        fi
-    done
-
-    local idx=$(( sum % mac_grp_count ))
-    local mac_head=${mac_groups[$idx]}
-
-    local fibonacci=(0 1 1 2 3 5 8 13 21 34 55)  # 有效的斐波那契数列
-    local byte1_index=${fibonacci[3]} # 2
-    local byte2_index=${fibonacci[5]} # 5
-    local byte3_index=${fibonacci[8]} # 21
-
-    if [[ ${#unique_id} -le $byte3_index ]]; then
-        echo "Error: unique_id is too short." >&2
-        exit 1
+# 加载MAC前缀
+load_mac_prefixes() {
+    if [[ ! -f "$mac_prefix_config" ]]; then
+        echo -e "00:0e:8e\n00:14:22\n00:18:8c\n00:1b:77\n00:1d:92\n00:20:18\n00:4f:49\n00:60:52\n00:e0:4c\n52:54:ab\nd4:3d:7f\nf0:25:b7\n28:6a:8d\nb0:7b:d5\nd8:0d:26\n22:33:44\n55:66:77\n88:99:aa\naa:bb:cc\ncc:dd:ee\n11:22:33\n44:55:66\n77:88:99\n99:aa:bb\nbb:cc:dd" > "$mac_prefix_config"
     fi
-
-    local byte1="${unique_id:$byte1_index:2}"
-    local byte2="${unique_id:$byte2_index:2}"
-    local byte3="${unique_id:$byte3_index:2}"
-
-    # 转换为小写
-    byte1="${byte1,,}"
-    byte2="${byte2,,}"
-    byte3="${byte3,,}"
-
-    local mac_tail="${byte1}:${byte2}:${byte3}"
-
-    echo "${mac_head}:${mac_tail}"
+    mapfile -t mac_groups < "$mac_prefix_config"
 }
 
-# MAC 地址增减
-mac_offset() {
-    local mac_address="$1"
-    local offset="$2"
+# 生成基准MAC地址
+generate_base_mac() {
+    load_mac_prefixes
+    local unique_id=$(get_unique_id)
+    local sum=0
+    
+    for (( i=0; i<${#unique_id}; i++ )); do
+        hex_char="${unique_id:i:1}"
+        printf -v hex_value "%d" "0x$hex_char" 2>/dev/null || hex_value=0
+        sum=$(( sum + hex_value ))
+    done
+    
+    local idx=$(( sum % ${#mac_groups[@]} ))
+    local hash_part=$(echo -n "$unique_id" | sha256sum | cut -c1-6)
+    printf "%s:%s:%s:%s" "${mac_groups[$idx]}" "${hash_part:0:2}" "${hash_part:2:2}" "${hash_part:4:2}" | tr '[:upper:]' '[:lower:]'
+}
 
-    if [[ ! $mac_address =~ ^([0-9a-fA-F]{2}(:|-)){5}([0-9a-fA-F]{2})$ ]]; then
-        echo "Invalid MAC address format." >&2
-        return 1
+# 获取或创建基准MAC
+get_or_create_base_mac() {
+    # 检查是否已有基准MAC
+    if [ -f "$mac_address_config" ]; then
+        # 尝试从配置文件中获取标记为BASE的MAC地址
+        base_mac=$(awk '/^BASE / {print $2}' "$mac_address_config" 2>/dev/null)
+        if [[ "$base_mac" =~ ^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$ ]]; then
+            echo "$base_mac"
+            return 0
+        fi
     fi
+    
+    # 生成新的基准MAC
+    local new_mac=$(generate_base_mac)
+    # 确保生成的MAC是有效的
+    if [[ ! "$new_mac" =~ ^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$ ]]; then
+        # 如果生成的MAC无效，使用随机MAC
+        new_mac="00:0e:8e:$(od -An -N3 -tx1 /dev/urandom | tr ' ' ':')"
+    fi
+    
+    # 创建新的配置文件，只包含BASE MAC
+    echo "BASE $new_mac" > "$mac_address_config"
+    echo "$new_mac"
+}
 
+# MAC地址偏移计算
+mac_offset() {
+    local mac_address="$1" offset="$2"
+    validate_mac "$mac_address"
+    
     IFS=':' read -r b1 b2 b3 b4 b5 b6 <<< "$mac_address"
-    local mac_dec=$(( (0x$b1 << 40) | (0x$b2 << 32) | (0x$b3 << 24) | (0x$b4 << 16) | (0x$b5 << 8) | (0x$b6) ))
-
+    local mac_dec=$(( (0x$b1 << 40) | (0x$b2 << 32) | (0x$b3 << 24) | (0x$b4 << 16) | (0x$b5 << 8) | 0x$b6 ))
     mac_dec=$(( mac_dec + offset ))
-
-    local new_mac=$(printf "%02X:%02X:%02X:%02X:%02X:%02X" \
+    
+    # 处理后24位溢出
+    local tail=$(( mac_dec & 0xFFFFFF ))
+    printf "%02x:%02x:%02x:%02x:%02x:%02x" \
         $(( (mac_dec >> 40) & 0xFF )) \
         $(( (mac_dec >> 32) & 0xFF )) \
         $(( (mac_dec >> 24) & 0xFF )) \
-        $(( (mac_dec >> 16) & 0xFF )) \
-        $(( (mac_dec >> 8) & 0xFF )) \
-        $(( mac_dec & 0xFF )))
-
-    echo "${new_mac,,}"  # 转换为小写
+        $(( (tail >> 16) & 0xFF )) \
+        $(( (tail >> 8) & 0xFF )) \
+        $(( tail & 0xFF ))
 }
 
-# 检查配置文件，获取当前 MAC 地址
-configured_mac_address=""
-if [[ -f "$mac_address_config" ]]; then
-    configured_mac_address=$(grep "^$interface " "$mac_address_config" | awk '{print $2}')
+# 使用文件锁保证原子操作
+(
+    # 创建必要目录
+    mkdir -p "$(dirname "$lock_file")" "$(dirname "$mac_address_config")"
+    touch "$mac_address_config"
+    chmod 600 "$mac_address_config"
 
-    # 检查 MAC 地址的合法性
-    if [[ ! "$configured_mac_address" =~ ^([0-9a-fA-F]{2}(:|[-])?){5}[0-9a-fA-F]{2}$ ]]; then
-        echo "Invalid MAC address found in config for $interface. Removing it."
-        sed -i "/^$interface /d" "$mac_address_config"  # 从配置文件中删除这一行
-        configured_mac_address=""
+    # 等待最多10秒获取排他锁
+    flock -w 10 -x 200 || die "无法获取文件锁"
+
+    # 加载接口列表
+    interfaces=($(get_physical_interfaces))
+    
+    # 验证接口有效性
+    if [[ ! " ${interfaces[@]} " =~ " ${interface} " ]]; then
+        die "接口 $interface 不存在或不是物理以太网接口\n可用接口: ${interfaces[@]}"
     fi
-fi
 
-# 生成完整的 MAC 地址如果配置文件中不存在当前 MAC 地址
-if [[ -n "$configured_mac_address" ]]; then
-    echo "Found MAC Address for $interface in config: $current_mac_address"
-    final_mac_address=${configured_mac_address,,}
-else
-    # 生成完整的 MAC 地址
-    final_mac_address=$(generate_mac)
+    # 生成或获取基准MAC
+    base_mac=$(get_or_create_base_mac)
+    echo "基准MAC地址: $base_mac" >&2
+    validate_mac "$base_mac"
 
-    # 找到输入的网络接口的索引
-    index=1
-    for iface in "${interfaces[@]}"; do
-        if [[ "$iface" == "$interface" ]]; then
+    # 确定接口索引
+    interface_index=-1
+    for i in "${!interfaces[@]}"; do
+        if [[ "${interfaces[$i]}" == "$interface" ]]; then
+            interface_index=$i
             break
         fi
-        index=$(( index + 1 ))
     done
+    [[ $interface_index -eq -1 ]] && die "无法确定接口索引"
 
-    # 忽略空接口
-    if (( index > 0 )); then
-        offset=$(( index - 1 ))
-        [[ $offset -gt 0 ]] && final_mac_address=$(mac_offset "$final_mac_address" "$offset")
+    # 计算最终MAC地址
+    final_mac=$(mac_offset "$base_mac" "$interface_index")
+    echo "接口 $interface 的MAC地址: $final_mac" >&2
+    validate_mac "$final_mac"
+
+    # 原子更新配置文件（保留BASE行，更新或添加接口MAC）
+    temp_file=$(mktemp)
+
+    # 添加BASE记录
+    echo "BASE $base_mac" > "$temp_file"
+
+    # 添加当前接口记录
+    echo "$interface $final_mac" >> "$temp_file"
+
+    # 其它接口记录
+    grep -v "^$interface " "$mac_address_config" | grep -v "^BASE " >> "$temp_file"
+
+    # 验证临时文件有效性
+    if grep -q "^BASE " "$temp_file" && grep -q "^$interface " "$temp_file"; then
+        sort "$temp_file" > "$mac_address_config" || die "配置文件更新失败"
+        chmod 600 "$mac_address_config"
     else
-        echo "Interface $interface not found in the sorted list." >&2
-        exit 1
+        die "临时文件生成失败"
     fi
 
-    # 检查接口名及对应的 MAC 地址是否已经存在
-    if ! grep -q "^$interface " "$mac_address_config"; then
-        # 将接口名及对应的 MAC 地址写入配置文件
-        echo "$interface $final_mac_address" >> "$mac_address_config"
-
-        # 排序配置文件并输出到临时文件，然后替换原文件
-        sort -u "$mac_address_config" -o "$mac_address_config"
-
-        # 设置文件权限
-        chmod 600 "$mac_address_config"  # 设置文件权限
+    # 设置MAC地址
+    current_mac=$(ip -o link show "$interface" | awk '{print $17}')
+    echo "当前MAC: $current_mac, 目标MAC: $final_mac" >&2
+    if [[ "$current_mac" != "$final_mac" ]]; then
+        echo "正在更新MAC地址: $current_mac -> $final_mac"
+        ip link set dev "$interface" down || die "无法关闭接口"
+        ip link set dev "$interface" address "$final_mac" || die "设置MAC地址失败"
+        ip link set dev "$interface" up || die "无法启动接口"
+        echo "MAC地址更新成功"
     else
-        echo "MAC Address for $interface already exists in the configuration file."
+        echo "MAC地址无需变更"
     fi
-fi
 
-# 获取当前接口的 MAC 地址并转换为小写
-current_mac_address_sys=$(< "/sys/class/net/$interface/address")
-current_mac_address_sys="${current_mac_address_sys,,}"
+    echo "=== $(date) 处理完成 $interface ==="
+    echo 
+    exit 0
+) 200>"$lock_file" || exit 1
 
-# 检查当前 MAC 地址是否与新设置的地址相同
-if [[ "$current_mac_address_sys" == "$final_mac_address" ]]; then
-    echo "MAC Address for $interface is already set to $final_mac_address. No changes made."
-else
-    echo "Resulting MAC Address for $interface: $final_mac_address"
-
-    # 设置指定接口的 MAC 地址
-    ip link set dev "$interface" down       # 先将接口关闭
-    ip link set dev "$interface" address "$final_mac_address"  # 设置新的 MAC 地址
-    ip link set dev "$interface" up         # 重新启用接口
-    echo "MAC Address for $interface has been set to $final_mac_address."
-fi
