@@ -1,8 +1,10 @@
 #!/bin/bash
-# version: 6.3
+
+version=7.7
 
 # 检查参数数量
 if [[ "$#" -ne 1 ]]; then
+    echo "Version: $version"
     echo "Usage: $0 <network_interface>" >&2
     exit 1
 fi
@@ -53,11 +55,11 @@ get_physical_interfaces() {
 # 获取唯一 ID
 get_unique_id() {
     if [[ -d /sys/block/mmcblk1 ]]; then
-        serial=$(< /sys/block/mmcblk1/device/cid 2>/dev/null)
+        serial=$(cat /sys/block/mmcblk1/device/cid 2>/dev/null)
     elif [[ -d /sys/block/mmcblk0 ]]; then
-        serial=$(< /sys/block/mmcblk0/device/cid 2>/dev/null)
+        serial=$(cat /sys/block/mmcblk0/device/cid 2>/dev/null)
     elif [[ -f /etc/machine-id ]]; then
-        serial=$(< /etc/machine-id 2>/dev/null)
+        serial=$(cat /etc/machine-id 2>/dev/null)
     else
         serial=$(od -An -N6 -tx1 /dev/random | tr -d ' \n')
     fi
@@ -72,7 +74,7 @@ get_unique_id() {
 # 加载MAC前缀
 load_mac_prefixes() {
     if [[ ! -f "$mac_prefix_config" ]]; then
-        echo -e "00:0e:8e\n00:14:22\n00:18:8c\n00:1b:77\n00:1d:92\n00:20:18\n00:4f:49\n00:60:52\n00:e0:4c\n52:54:ab\nd4:3d:7f\nf0:25:b7\n28:6a:8d\nb0:7b:d5\nd8:0d:26\n22:33:44\n55:66:77\n88:99:aa\naa:bb:cc\ncc:dd:ee\n11:22:33\n44:55:66\n77:88:99\n99:aa:bb\nbb:cc:dd" > "$mac_prefix_config"
+        echo -e "00:0e:8e\n00:14:22\n00:18:8c\n00:1b:77\n00:1d:92\n00:20:18\n00:4f:49\n00:60:52\n00:e0:4c\n52:54:ab\nd4:3d:7f\nf0:25:b7\n28:6a:8d\nb0:7b:d5\nd8:0d:26\n" > "$mac_prefix_config"
     fi
     mapfile -t mac_groups < "$mac_prefix_config"
 }
@@ -81,17 +83,28 @@ load_mac_prefixes() {
 generate_base_mac() {
     load_mac_prefixes
     local unique_id=$(get_unique_id)
-    local sum=0
     
-    for (( i=0; i<${#unique_id}; i++ )); do
-        hex_char="${unique_id:i:1}"
-        printf -v hex_value "%d" "0x$hex_char" 2>/dev/null || hex_value=0
-        sum=$(( sum + hex_value ))
-    done
+    local raw_hash=$(echo -n "${unique_id}" | sha512sum | cut -d' ' -f1)
     
-    local idx=$(( sum % ${#mac_groups[@]} ))
-    local hash_part=$(echo -n "$unique_id" | sha256sum | cut -c1-6)
-    printf "%s:%s:%s:%s" "${mac_groups[$idx]}" "${hash_part:0:2}" "${hash_part:2:2}" "${hash_part:4:2}" | tr '[:upper:]' '[:lower:]'
+    local bitfield_index=$(( 0x${raw_hash:8:4} % ${#mac_groups[@]} ))
+    local prefix=${mac_groups[$bitfield_index]}
+
+    # max start pos is length(raw_hash) - 6
+    local start_pos=$(( 0x${raw_hash:16:4} % (${#raw_hash} - 6) ))
+
+    local mac_tail=$(
+    echo -n "$raw_hash $start_pos" | awk '
+        {
+            printf("%s:%s:%s", 
+	           substr($1, $2 + 1, 2), 
+	           substr($1, $2 + 3, 2), 
+		   substr($1, $2 + 5, 2)); 
+	}'
+    )
+
+    # 强制设置本地管理位（第2位为1）
+    local octet4=$(printf "%02x" $((0x${mac_tail:0:2} & 0xFE | 0x02)))
+    echo "${prefix}:${octet4}:${mac_tail:3:8}"
 }
 
 # 获取或创建基准MAC
@@ -111,7 +124,7 @@ get_or_create_base_mac() {
     # 确保生成的MAC是有效的
     if [[ ! "$new_mac" =~ ^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$ ]]; then
         # 如果生成的MAC无效，使用随机MAC
-        new_mac="00:0e:8e:$(od -An -N3 -tx1 /dev/urandom | tr ' ' ':')"
+        new_mac="00:0e:8e$(od -An -N3 -tx1 /dev/urandom | tr ' ' ':')"
     fi
     
     # 创建新的配置文件，只包含BASE MAC
@@ -139,6 +152,12 @@ mac_offset() {
         $(( tail & 0xFF ))
 }
 
+get_current_mac() {
+    local iface=$1
+    ip -o link show "$iface" | sed -nE 's/.*link\/ether (([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}).*/\1/p' | head -n1
+}
+
+echo "当前MAC地址: $current_mac"
 # 使用文件锁保证原子操作
 (
     # 创建必要目录
@@ -198,7 +217,7 @@ mac_offset() {
     fi
 
     # 设置MAC地址
-    current_mac=$(ip -o link show "$interface" | awk '{print $17}')
+    current_mac=$(get_current_mac "$interface")
     echo "当前MAC: $current_mac, 目标MAC: $final_mac" >&2
     if [[ "$current_mac" != "$final_mac" ]]; then
         echo "正在更新MAC地址: $current_mac -> $final_mac"
