@@ -179,30 +179,40 @@ EOF
 
 (
 	conf="etc/firstboot_machine_id.conf"
+	echo "Create $conf ... "
 	touch $conf
 	echo "RESET_MACHINE_ID=$FIRSTBOOT_RESET_MACHINE_ID" >> $conf
+	cat $conf
+	echo 
 )
 
 (
 	conf="etc/firstboot_openssh.conf"
 	touch $conf
+	echo "Create $conf ... "
 	echo "RESET_SSH_KEYS=$FIRSTBOOT_RESET_SSH_KEYS" >> $conf
 	echo "SSHD_PORT=$SSHD_PORT" >> $conf
 	echo "SSHD_PERMIT_ROOT_LOGIN=$SSHD_PERMIT_ROOT_LOGIN" >> $conf
 	echo "SSHD_CIPHERS=$SSHD_CIPHERS" >> $conf
 	echo "SSH_CIPHERS=$SSH_CIPHERS" >> $conf
+	cat $conf
+	echo 
 )
 
 (
 	conf="etc/firstboot_i18n.conf"
 	touch $conf
+	echo "Create $conf ... "
 	echo "LANGUAGE=$DEFAULT_LANGUAGE" >> $conf
 	echo "TIMEZONE=$DEFAULT_TIMEZONE" >> $conf
+	cat $conf
+	echo 
 )
 
 (
 	conf="etc/firstboot_network.conf"
 	touch $conf
+	echo "Create $conf ... "
 	if [ -n "${NETPLAN_BACKEND}" ];then
 		echo "NETPLAN_BACKEND=${NETPLAN_BACKEND}" >> $conf
 		#if [ "${NETPLAN_BACKEND}" == "networkd" ];then
@@ -218,16 +228,22 @@ EOF
 			echo "SEARCH_DOMAIN=${SEARCH_DOMAIN}" >> $conf
 		#fi
 	fi
+	cat $conf
+	echo 
 )
 
 (
 	conf="etc/firstboot_hostname"
+	touch $conf
+	echo "Create $conf ... "
 	if [ -z "${DEFAULT_HOSTNAME}" ];then
 		hostname=${OS_RELEASE}
 	else
 		hostname=${DEFAULT_HOSTNAME}
 	fi
 	echo $hostname > $conf
+	cat $conf
+	echo 
 )
 
 ( 
