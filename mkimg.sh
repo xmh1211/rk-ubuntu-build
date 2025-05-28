@@ -74,7 +74,7 @@ if [ ! -d "${WORKDIR}/build/${rootfs_source}" ];then
 fi
 
 case $OS_RELEASE in
-	bionic|focal|jammy|noble|oracular)
+	bionic|focal|jammy|noble|oracular|plucky)
 		os_name='ubuntu';;
 	buster|bullseys|bookworm)
 		os_name='debian';;

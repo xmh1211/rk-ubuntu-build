@@ -137,8 +137,12 @@ function setup_hostname() {
 		else
 			hostname="${hostname}-${random_id}"
 		fi
+		echo -n "setup hostname to $hostname ... "
 		hostnamectl set-hostname $hostname
 		rm -f $conf
+		echo "done"
+	else
+		echo "$conf not exists, can't setup hostname!"
 	fi
 }
 
