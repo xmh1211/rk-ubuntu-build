@@ -139,7 +139,7 @@ function setup_hostname() {
 		fi
 		echo -n "setup hostname to $hostname ... "
 		hostnamectl set-hostname $hostname
-		mv $conf "${conf}.final"
+		echo $hostname > "${conf}.final"
 		echo "done"
 	else
 		echo "$conf not exists, can't setup hostname!"
