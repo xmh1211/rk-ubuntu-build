@@ -76,7 +76,7 @@ fi
 case $OS_RELEASE in
 	bionic|focal|jammy|noble|oracular|plucky)
 		os_name='ubuntu';;
-	buster|bullseys|bookworm)
+	buster|bullseye|bookworm)
 		os_name='debian';;
 	*)
 		os_name='unknown';;
