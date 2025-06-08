@@ -19,6 +19,9 @@ if [ "${getty_tty1_enabled}" == "enabled" ];then
 	systemctl disable getty@tty1.service
 fi
 
+/usr/local/bin/set_mac.sh eth0
+/usr/local/bin/set_mac.sh eth1
+
 /usr/local/bin/setup_led_trigger_netdev.sh "yellow:lan" "eth0"
 /usr/local/bin/setup_led_trigger_netdev.sh "yellow:wan" "eth1"
 echo `date +%F" "%T` "Startup worked" >> /var/log/mystartup.log

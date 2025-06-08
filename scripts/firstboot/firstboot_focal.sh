@@ -706,4 +706,6 @@ disable_service $FIRSTBOOT
 
 echo "sync ..."
 sync && echo "sync done"
+echo "rebooting ..."
+echo 'b' > /proc/sysrq-trigger
 exit 0

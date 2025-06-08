@@ -1,6 +1,6 @@
 #!/bin/bash
 
-version=7.7
+version=7.8
 
 # 检查参数数量
 if [[ "$#" -ne 1 ]]; then
@@ -14,7 +14,7 @@ interface="$1"
 
 # 配置文件位置
 mac_prefix_config="/etc/mac_prefix.conf"
-mac_address_config="/etc/mac_addresses.conf"
+mac_address_config="/etc/mac_address.conf"
 lock_file="/var/lock/set_mac.lock"
 log_file="/var/log/set_mac.log"
 
@@ -67,8 +67,7 @@ get_unique_id() {
     serial="${serial,,}"  # 转换为小写
     serial="${serial//0x/}"  # 去除前缀 "0x"
 
-    # 对 serial 进行 SHA256 哈希
-    echo "$(echo -n "$serial" | sha256sum | cut -f1)"
+    echo $serial
 }
 
 # 加载MAC前缀
@@ -84,7 +83,7 @@ generate_base_mac() {
     load_mac_prefixes
     local unique_id=$(get_unique_id)
     
-    local raw_hash=$(echo -n "${unique_id}" | sha512sum | cut -d' ' -f1)
+    local raw_hash=$(echo -n "${unique_id}" | sha256sum | cut -d' ' -f1)
     
     local bitfield_index=$(( 0x${raw_hash:8:4} % ${#mac_groups[@]} ))
     local prefix=${mac_groups[$bitfield_index]}
@@ -119,16 +118,18 @@ get_or_create_base_mac() {
         fi
     fi
     
-    # 生成新的基准MAC
+    # 如果文件不存在或没有有效的BASE记录，生成新的基准MAC
     local new_mac=$(generate_base_mac)
     # 确保生成的MAC是有效的
     if [[ ! "$new_mac" =~ ^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$ ]]; then
         # 如果生成的MAC无效，使用随机MAC
         new_mac="00:0e:8e$(od -An -N3 -tx1 /dev/urandom | tr ' ' ':')"
     fi
-    
-    # 创建新的配置文件，只包含BASE MAC
+
+    # 创建或更新配置文件，只包含BASE MAC
+    mkdir -p "$(dirname "$mac_address_config")"
     echo "BASE $new_mac" > "$mac_address_config"
+    sync
     echo "$new_mac"
 }
 
@@ -157,16 +158,19 @@ get_current_mac() {
     ip -o link show "$iface" | sed -nE 's/.*link\/ether (([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}).*/\1/p' | head -n1
 }
 
-echo "当前MAC地址: $current_mac"
-# 使用文件锁保证原子操作
+# 主过程
 (
-    # 创建必要目录
-    mkdir -p "$(dirname "$lock_file")" "$(dirname "$mac_address_config")"
-    touch "$mac_address_config"
-    chmod 600 "$mac_address_config"
+    # 等待最多30秒获取排他锁
+    flock -w 30 -x 200 || die "无法获取文件锁"
 
-    # 等待最多10秒获取排他锁
-    flock -w 10 -x 200 || die "无法获取文件锁"
+    current_mac=$(get_current_mac)
+    echo "当前MAC地址: $current_mac"
+
+    # 创建锁文件目录并设置适当权限
+    mkdir -p "$(dirname "$lock_file")" || die "无法创建锁文件目录"
+    chmod 755 "$(dirname "$lock_file")"
+    touch "$lock_file" || die "无法创建锁文件"
+    chmod 644 "$lock_file"
 
     # 加载接口列表
     interfaces=($(get_physical_interfaces))
@@ -233,4 +237,3 @@ echo "当前MAC地址: $current_mac"
     echo 
     exit 0
 ) 200>"$lock_file" || exit 1
-
