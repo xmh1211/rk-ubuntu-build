@@ -1,6 +1,6 @@
 #!/bin/bash
 
-version=7.8
+version=8.0
 
 # 检查参数数量
 if [[ "$#" -ne 1 ]]; then
@@ -54,15 +54,17 @@ get_physical_interfaces() {
 
 # 获取唯一 ID
 get_unique_id() {
-    if [[ -d /sys/block/mmcblk1 ]]; then
-        serial=$(cat /sys/block/mmcblk1/device/cid 2>/dev/null)
-    elif [[ -d /sys/block/mmcblk0 ]]; then
-        serial=$(cat /sys/block/mmcblk0/device/cid 2>/dev/null)
-    elif [[ -f /etc/machine-id ]]; then
-        serial=$(cat /etc/machine-id 2>/dev/null)
-    else
-        serial=$(od -An -N6 -tx1 /dev/random | tr -d ' \n')
-    fi
+    #if [[ -d /sys/block/mmcblk1 ]]; then
+    #    serial=$(cat /sys/block/mmcblk1/device/cid 2>/dev/null)
+    #elif [[ -d /sys/block/mmcblk0 ]]; then
+    #    serial=$(cat /sys/block/mmcblk0/device/cid 2>/dev/null)
+    #elif [[ -f /etc/machine-id ]]; then
+    #    serial=$(cat /etc/machine-id 2>/dev/null)
+    #else
+    #    serial=$(od -An -N6 -tx1 /dev/random | tr -d ' \n')
+    #fi
+
+    serial=$(od -An -N16 -tx1 /dev/random | tr -d ' ')
 
     serial="${serial,,}"  # 转换为小写
     serial="${serial//0x/}"  # 去除前缀 "0x"
