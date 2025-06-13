@@ -1,6 +1,6 @@
 #!/bin/bash
 
-version=8.0
+version=8.1
 
 # 检查参数数量
 if [[ "$#" -ne 1 ]]; then
@@ -165,8 +165,8 @@ get_current_mac() {
     # 等待最多30秒获取排他锁
     flock -w 30 -x 200 || die "无法获取文件锁"
 
-    current_mac=$(get_current_mac)
-    echo "当前MAC地址: $current_mac"
+    current_mac=$(get_current_mac  "$interface")
+    echo "$interface 当前MAC地址: $current_mac"
 
     # 创建锁文件目录并设置适当权限
     mkdir -p "$(dirname "$lock_file")" || die "无法创建锁文件目录"
