@@ -12,10 +12,13 @@ for dir in $target_dirs;do
   (
     cd $dir
     tdir=$(realpath $PWD)
+    echo "================================================================================================"
     rm -f ${tdir}/etc/udev/rules.d/99-set-mac.rules
     rm -f ${tdir}/usr/local/bin/set_mac.sh
     cp -v ${src_dir}/99-set-mac.rules ${tdir}/etc/udev/rules.d/
-    cp -v ${src_dir}/set_mac.sh ${tdir}/usr/local/bin/ && chmod 755 ${tdir}/usr/local/bin/set_mac.sh
+    cp -v ${src_dir}/set_mac.* ${tdir}/usr/local/bin/ && chmod 755 ${tdir}/usr/local/bin/set_mac.*
+    echo "================================================================================================"
+    echo
   )
 done
 
