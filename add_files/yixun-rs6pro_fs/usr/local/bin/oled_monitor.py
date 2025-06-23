@@ -336,7 +336,7 @@ def get_ip_address(interface):
                 # 返回带前缀的完整IP地址
                 return f"{addr.address}"
         
-        return "ip:<N/A"
+        return "ip:N/A"
     except Exception as e:
         logger.error(f"获取IP地址失败: {e}")
         return "ip:N/A"
