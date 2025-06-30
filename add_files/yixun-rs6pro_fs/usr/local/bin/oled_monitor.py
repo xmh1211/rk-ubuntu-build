@@ -232,9 +232,6 @@ class OLEDManager:
             # 应用边缘偏移 (使用配置值)
             self.device.command(0xD3)  # 设置显示偏移
             self.device.command(self.config['y_offset'])  # Y偏移值
-            self.device.command(0x21)  # 设置列地址
-            self.device.command(self.config['x_offset'])  # X偏移起始
-            self.device.command(127 - self.config['x_offset'])  # X偏移结束
             
             self.last_reset_time = time.time()
             logger.info(f"OLED显示器初始化成功 (I2C-{self.config['i2c_port']} @ 0x{self.config['i2c_address']:02X})")
@@ -295,21 +292,23 @@ class OLEDManager:
         
         try:
             with canvas(self.device) as draw:
+                x_offset = self.config['x_offset']
+
                 # 第1行: IP地址
                 ip_address = get_ip_address(self.config['network_interface'])
-                net_info = f"{self.config['network_interface']}: {ip_address}"
-                draw.text((0, 16), net_info, font=font, fill="white")
+                net_info = f"{self.config['network_interface']}:{ip_address}"
+                draw.text((0 + x_offset, 16), net_info, font=font, fill="white")
                 
                 # 第2行: CPU温度及频率
                 cpu_temp, cpu_freq = get_cpu_info(self.config)
-                cpu_info = f"soc: {cpu_temp:.1f}°C"
-                draw.text((0, 26), cpu_info, font=font, fill="white")
+                cpu_info = f"soc:{cpu_temp:.1f}°C"
+                draw.text((0 + x_offset, 26), cpu_info, font=font, fill="white")
                 cpu_info = f"{cpu_freq:.0f}MHz"
-                draw.text((72, 26), cpu_info, font=font, fill="white")
+                draw.text((72 + x_offset, 26), cpu_info, font=font, fill="white")
 
                 # 第3行: 当前时间
                 time_str = get_current_time()
-                draw.text((0, 36), time_str, font=font, fill="white")
+                draw.text((0 + x_offset, 36), time_str, font=font, fill="white")
                 
             return True
         except Exception as e:
