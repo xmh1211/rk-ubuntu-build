@@ -114,6 +114,31 @@ jobs:
           cd debootstrap
           sudo make install
           debootstrap --version
+          
+      - name: Download kernel packages from Release 'kernel'
+        run: |
+          set -euo pipefail
+          # 直接进入已存在的目录
+          cd upstream/kernel/mainline
+
+          JSON="$(curl -s \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/kernel")"
+
+          URLS="$(echo "$JSON" | jq -r '.assets[].browser_download_url')"
+          if [[ -z "$URLS" ]]; then
+            echo "::warning::No assets found in Release 'kernel'; skipping download."
+            exit 0
+          fi
+
+          for url in $URLS; do
+            echo "Downloading $url"
+            wget -q --show-progress "$url"
+          done
+
+          echo "Kernel files downloaded:"
+          ls -lh
 
       - name: Build root filesystem
         run: |
