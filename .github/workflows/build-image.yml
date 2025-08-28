@@ -73,6 +73,8 @@ on:
           - boot384-xfsroot
       debug_enabled:
         description: '开启调试模式'
+        #如果开启了调试模式（debug），就不压缩镜像。
+        #如果勾选，会打印更多日志，方便排查问题。
         required: false
         default: false
         type: boolean
