@@ -1,0 +1,215 @@
+name: Build RK Ubuntu Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      soc:
+        description: 'SoC 型号'
+        required: true
+        default: 'rk3568'
+        type: choice
+        options:
+          - rk3399-ml
+          - rk3528-k61
+          - rk3528
+          - rk3566-k61
+          - rk3568-bsp
+          - rk3568
+          - rk3588-ml
+          - rk3588
+          - rk3588s-ml
+      machine:
+        description: '设备型号'
+        required: true
+        default: 'h68k'
+        type: choice
+        options:
+          - e20c
+          - e54c
+          - h28k
+          - h29k
+          - h66k
+          - h68k
+          - h69k-max
+          - h69k
+          - h88k
+          - ht3
+          - netfusion
+          - rock-5b
+          - yixun-rs6pro
+          - zcube1-max
+      linux_flavor:
+        description: '构建根文件系统'
+        required: true
+        default: 'bookworm-mini'
+        type: choice
+        options:
+          - bookworm-mini
+          - bookworm-python
+          - bookworm-rk-media
+          - bullseye-mini
+          - focal-mini
+          - focal
+          - jammy-mini
+          - jammy-xfce
+          - noble-mini-stress
+          - noble-mini
+          - noble-python
+          - noble-rk-media
+          - noble-tiny
+          - noble-xfce
+          - oracular-mini
+      custom_config:
+        description: '自定义配置（可选）'
+        required: false
+        default: 'boot384-ext4root'
+        type: choice
+        options:
+          - ''
+          - boot256-ext4root
+          - boot256-xfsroot
+          - boot384-btrfsroot
+          - boot384-ext4root
+          - boot384-xfsroot
+      debug_enabled:
+        description: '开启调试模式'
+        required: false
+        default: false
+        type: boolean
+
+  #schedule:
+    #- cron: '0 2 * * *'
+
+  push:
+    tags:
+      - 'v*'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            util-linux fdisk parted dosfstools wget curl debian-archive-keyring \
+            git make e2fsprogs xfsprogs btrfs-progs f2fs-tools \
+            u-boot-tools device-tree-compiler kmod tree pv \
+            coreutils xz-utils zip unzip
+
+      - name: install debootstrap
+        run: |
+          # 克隆并构建最新版本的 debootstrap
+          git clone https://git.launchpad.net/ubuntu/+source/debootstrap
+          cd debootstrap
+          sudo make install
+          debootstrap --version
+
+      - name: Build root filesystem
+        run: |
+          LINUX_FLAVOR="${{ inputs.linux_flavor || 'jammy' }}"
+          echo "Building root filesystem for $LINUX_FLAVOR..."
+          sudo ./mkrootfs.sh "$LINUX_FLAVOR"
+
+      - name: Build final image
+        run: |
+          SOC="${{ inputs.soc || 'rk3568' }}"
+          MACHINE="${{ inputs.machine || 'h68k' }}"
+          LINUX_FLAVOR="${{ inputs.linux_flavor || 'jammy' }}"
+          CUSTOM_CONFIG="${{ inputs.custom_config || '' }}"
+
+          if [ -n "$CUSTOM_CONFIG" ]; then
+            sudo ./mkimg.sh "$SOC" "$MACHINE" "$LINUX_FLAVOR" "$CUSTOM_CONFIG"
+          else
+            sudo ./mkimg.sh "$SOC" "$MACHINE" "$LINUX_FLAVOR"
+          fi
+
+      - name: Collect built images
+        id: collect
+        run: |
+          shopt -s nullglob
+          imgs=(build/*.img)
+          if [[ ${#imgs[@]} -eq 0 ]]; then
+            echo "::error::No *.img found in build/"
+            exit 1
+          fi
+          printf '%s\n' "${imgs[@]}" | tee img-list.txt
+          echo "image_count=${#imgs[@]}" >> "$GITHUB_OUTPUT"
+
+      - name: Compress final images only
+        if: ${{ ! inputs.debug_enabled }}
+        run: |
+          sudo find build -maxdepth 1 -type f -name "*.img" -exec xz -T0 -9 {} \;
+
+      - name: Generate checksums
+        run: |
+          sudo find build -maxdepth 1 -type f \( -name "*.img" -o -name "*.img.xz" \) \
+            -exec sha256sum {} \; > checksums.txt
+
+      - name: Generate release info
+        id: release-info
+        run: |
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          BUILD_DATE=$(date -u +%Y%m%d)
+          SOC="${{ inputs.soc || 'rk3568' }}"
+          MACHINE="${{ inputs.machine || 'h68k' }}"
+          FLAVOR="${{ inputs.linux_flavor || 'jammy' }}"
+          RELEASE_TAG="build-${SOC}-${MACHINE}-${FLAVOR}-${BUILD_DATE}-${SHORT_SHA}"
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "build_date=$BUILD_DATE" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release-info.outputs.release_tag }}
+          name: "RK Ubuntu ${{ steps.release-info.outputs.build_date }} Build"
+          body: |
+            ## Build Information
+            - **SoC**: ${{ inputs.soc || 'rk3568' }}
+            - **Machine**: ${{ inputs.machine || 'h68k' }}
+            - **Linux Flavor**: ${{ inputs.linux_flavor || 'jammy' }}
+            - **Custom Config**: ${{ inputs.custom_config || 'None' }}
+            - **Build Date**: ${{ steps.release-info.outputs.build_date }}
+            - **Commit**: ${{ github.sha }}
+          files: |
+            build/*.img
+            build/*.img.xz
+            checksums.txt
+          draft: false
+          prerelease: false
+          make_latest: true
+
+      - name: Prepare short SHA
+        id: vars
+        run: echo "short_sha=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rk-ubuntu-images-${{ github.run_number }}-${{ steps.vars.outputs.short_sha }}
+          path: build/*.img*
+          retention-days: 30
+
+      - name: Debug info
+        if: inputs.debug_enabled
+        run: |
+          echo "=== Debug Information ==="
+          df -h
+          uname -a
+          debootstrap --version
+
+      - name: Cleanup
+        if: always()
+        run: |
+          sudo rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /tmp/* debootstrap/ rootfs/ 2>/dev/null || true
